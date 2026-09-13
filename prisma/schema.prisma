@@ -1,0 +1,82 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Episode {
+  id              String            @id @default(cuid())
+  youtubeId       String            @unique
+  episodeNumber   Int?
+  videoTitle      String
+  videoUrl        String
+  thumbnailUrl    String
+  publishedAt     DateTime
+  channelTitle    String            @default("Prasad Tech In Telugu")
+  generationStage String            @default("Ingested") // Ingested, DigestReady, DeepDivesReady, Published
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  digest          EpisodeDigest?
+  topics          NewsTopic[]
+  deepDives       DeepDiveArticle[]
+}
+
+model EpisodeDigest {
+  id               String    @id @default(cuid())
+  episodeId        String    @unique
+  episode          Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  slug             String    @unique
+  titleEn          String
+  titleTe          String
+  summaryEn        String
+  summaryTe        String
+  introEn          String
+  introTe          String
+  keyTakeawaysEn   String    // JSON string array
+  keyTakeawaysTe   String    // JSON string array
+  publicationState String    @default("Draft") // Draft, Published
+  publishedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model NewsTopic {
+  id                   String           @id @default(cuid())
+  episodeId            String
+  episode              Episode          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  timestamp            String           // e.g. "01:25"
+  seconds              Int              // for player jump
+  titleEn              String
+  titleTe              String
+  summaryEn            String
+  summaryTe            String
+  category             String           @default("Tech")
+  isSelectedForDeepDive Boolean          @default(false)
+  deepDive             DeepDiveArticle?
+  createdAt            DateTime         @default(now())
+}
+
+model DeepDiveArticle {
+  id               String     @id @default(cuid())
+  episodeId        String
+  episode          Episode    @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  topicId          String?    @unique
+  topic            NewsTopic? @relation(fields: [topicId], references: [id])
+  slug             String     @unique
+  titleEn          String
+  titleTe          String
+  contentEn        String     // Markdown formatted deep-dive
+  contentTe        String     // Markdown formatted deep-dive (Telugu)
+  specsJson        String?    // JSON string for specifications table
+  category         String     @default("Gadgets")
+  readTimeMinutes  Int        @default(4)
+  coverImage       String?
+  publicationState String     @default("Draft") // Draft, Published
+  publishedAt      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
